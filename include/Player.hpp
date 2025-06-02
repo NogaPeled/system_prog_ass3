@@ -13,9 +13,9 @@ namespace coup {
         std::string name;
         int coins = 0; // Number of coins the player currently holds
         bool alive = true; // Whether the player is still in the game
-        Player* lastArrested = nullptr;
         bool underSanction = false;
         bool bribeUsed = false; // to track if the player has used a bribe this turn
+        bool extraTurn = false;  // Tracks if player has an extra action (from bribe)
         void enforceCoupRule() const;
         bool blockedFromArrest = false;
         // These are `protected` so that derived classes (like `Governor`) can access them directly if needed.
@@ -30,12 +30,13 @@ namespace coup {
         virtual void coup(Player& target) = 0;
         virtual void undo(Player& target) = 0;
         virtual void arrest(Player& target);
-        virtual void sanction(Player& target);        
+        virtual void sanction(Player& target, int cost);        
         void setUnderSanction(bool status);
         bool isUnderSanction() const;    
         virtual void bribe();    
         void resetBribe();
-
+        bool hasUsedBribe() const { return bribeUsed; }  
+        
         int getCoins() const;
         const std::string& getName() const;
 
@@ -43,8 +44,12 @@ namespace coup {
         void loseCoins(int amount);
         void eliminate();
         bool isAlive() const;
-        void setBlockedFromArrest(bool);
-        bool isBlockedFromArrest() const;
+        void setArrestDisabled(bool);
+        bool isArrestDisabled() const;
+
+        bool hasExtraTurn() const { return extraTurn; }
+        void grantExtraTurn() { extraTurn = true; }
+        void consumeExtraTurn() { extraTurn = false; }
 
     };
 }

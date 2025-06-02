@@ -11,7 +11,9 @@ namespace coup {
 
         void watch(Player& target);
         void preventNextArrest(Player& target);
-
+        void clearWatch(); // Resets spy’s tracked target
+        Player* getBlockedTarget() const;
+        
         void coup(Player& target) override;
         void undo(Player& target) override;
     };

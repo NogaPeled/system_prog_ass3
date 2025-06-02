@@ -1,6 +1,7 @@
 #include "../include/Game.hpp"
 #include "../include/Player.hpp"
 #include "../include/Merchant.hpp"
+#include "../include/Spy.hpp"
 #include <stdexcept>
 
 namespace coup {
@@ -27,23 +28,27 @@ namespace coup {
         return players_list[current_turn_index]->getName();
     }
 
-    void Game::nextTurn() {
-        if (players_list.empty()) return;
-        do {
-            current_turn_index = (current_turn_index + 1) % players_list.size();
-        } while (!players_list[current_turn_index]->isAlive());
+void Game::nextTurn() {
+    if (players_list.empty()) return;
 
-        players_list[current_turn_index]->setUnderSanction(false);
-        players_list[current_turn_index]->resetBribe();
-        players_list[current_turn_index]->setBlockedFromArrest(false); // ← NEW: resets Spy effect
+    Player* justFinished = players_list[current_turn_index];
 
-        // Call onStartTurn() if the current player is a Merchant
-        Merchant* merchant = dynamic_cast<Merchant*>(players_list[current_turn_index]);
-        if (merchant != nullptr) {
-            merchant->onStartTurn();
-        }
-    
+    do {
+        current_turn_index = (current_turn_index + 1) % players_list.size();
+    } while (!players_list[current_turn_index]->isAlive());
+
+    Player* nowPlaying = players_list[current_turn_index];
+
+    nowPlaying->resetBribe();
+    nowPlaying->setArrestDisabled(false); // reset arrest disable flag
+
+    // Merchant bonus:
+    Merchant* merchant = dynamic_cast<Merchant*>(nowPlaying);
+    if (merchant) {
+        merchant->onStartTurn();
     }
+}
+
 
     std::string Game::winner() const {
         int aliveCount = 0;

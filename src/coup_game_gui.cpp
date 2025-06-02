@@ -8,7 +8,7 @@
 #include <random>
 #include <algorithm>
 #include <QApplication>
-
+#include <QTime>
 
 CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
     setWindowTitle("Coup Game - GUI Version");
@@ -57,13 +57,15 @@ CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
     int numPlayers = QInputDialog::getInt(this, "Players", "Enter number of players (2-6):", 2, 2, 6, 1, &ok);
     if (!ok) QApplication::quit();
 
-    QStringList roles = {"Governor", "Spy", "Baron", "General", "Judge", "Merchant"};
-    std::shuffle(roles.begin(), roles.end(), std::mt19937{std::random_device{}()});
+    QStringList rolePool = {"Governor", "Spy", "Baron", "General", "Judge", "Merchant"};
+    qsrand(QTime::currentTime().msec());
 
     for (int i = 0; i < numPlayers; ++i) {
         QString name = QInputDialog::getText(this, "Player Name", QString("Enter name for player %1:").arg(i + 1), QLineEdit::Normal, "", &ok);
         if (!ok || name.isEmpty()) QApplication::quit();
-        QString role = roles[i % roles.size()];
+
+        QString role = rolePool[qrand() % rolePool.size()];  // 🎲 pick random, allows duplicates
+
         coup::Player* newPlayer = nullptr;
         if (role == "Governor") newPlayer = new coup::Governor(game, name.toStdString());
         else if (role == "Spy") newPlayer = new coup::Spy(game, name.toStdString());
@@ -87,15 +89,18 @@ CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
 
     updatePlayerList();
 }
+
 void CoupGUI::onGather() {
     auto current = game.turn();
     for (auto* p : players) {
         if (p->getName() == current) {
             try {
                 p->gather();
+                logArea->append(QString::fromStdString(p->getName() + " gathered 1 coin."));
                 updatePlayerList();
             } catch (const std::exception& e) {
                 showError(e.what());
+                updatePlayerList();  // ✅ Refresh list even after error
             }
             return;
         }
@@ -107,15 +112,41 @@ void CoupGUI::onTax() {
     for (auto* p : players) {
         if (p->getName() == current) {
             try {
+                // Governor block opportunity
+                for (auto* gov : players) {
+                    if (getRoleName(gov) == "Governor" &&
+                        gov->isAlive() &&
+                        gov->getName() != current) {
+
+                        int res = QMessageBox::question(this, "Governor Tax Block",
+                            QString::fromStdString(gov->getName()) +
+                            ": Do you want to block the Tax action of " +
+                            QString::fromStdString(current) + "?",
+                            QMessageBox::Yes | QMessageBox::No);
+
+                        if (res == QMessageBox::Yes) {
+                            logArea->append(QString::fromStdString("🏛️ " + gov->getName() +
+                                " blocked the Tax action of " + current));
+                            game.nextTurn();
+                            updatePlayerList();
+                            return;
+                        }
+                    }
+                }
+
+                // No one blocked
                 p->tax();
-                updatePlayerList();
+                logArea->append(QString::fromStdString("🏛️ " + p->getName() + " used tax."));
             } catch (const std::exception& e) {
                 showError(e.what());
+                logArea->append(QString::fromStdString("🚫 " + p->getName() + " couldn't use tax."));
             }
+            updatePlayerList();
             return;
         }
     }
 }
+
 
 void CoupGUI::onCoup() {
     auto current = game.turn();
@@ -128,28 +159,119 @@ void CoupGUI::onCoup() {
     }
     if (!actor) return;
 
+    // Check if attacker has enough coins before proceeding
+    if (actor->getCoins() < 7) {
+        showError("You need at least 7 coins to perform a coup.");
+        return;
+    }
+
     coup::Player* target = selectTarget(current, "Coup");
     if (!target) return;
 
-    if (getRoleName(target) == "General" && target->getCoins() >= 5) {
-        int res = QMessageBox::question(this, "General Coup Block", QString::fromStdString(target->getName()) + ", block the coup for 5 coins?");
-        if (res == QMessageBox::Yes) {
-            try {
-                actor->loseCoins(7);  // Attacker pays cost of coup
-                target->loseCoins(5); // General pays to block
-                logArea->append(QString::fromStdString(target->getName()) + " blocked the coup!");
-                updatePlayerList();
-                return;
-            } catch (const std::exception& e) {
-                showError(e.what());
-                return;
+    // Let each General choose whether to block the coup
+    for (auto* general : players) {
+        if (getRoleName(general) == "General" && general->isAlive() && general->getCoins() >= 5) {
+            int res = QMessageBox::question(this, "General Coup Block",
+                QString::fromStdString(general->getName()) + ": Do you want to pay 5 coins to block the coup on " +
+                QString::fromStdString(target->getName()) + "?",
+                QMessageBox::Yes | QMessageBox::No);
+
+            if (res == QMessageBox::Yes) {
+                try {
+                    actor->loseCoins(7);       // attacker always pays
+                    general->loseCoins(5);     // general pays to block
+                    logArea->append(QString::fromStdString("🛡️ " + general->getName() + " blocked the coup on " + target->getName()));
+                    game.nextTurn();
+                    updatePlayerList();
+                    return;  // Coup blocked
+                } catch (const std::exception& e) {
+                    showError(e.what());
+                    updatePlayerList();
+                    return;
+                }
             }
         }
     }
 
+    // No General blocked → proceed with coup
     try {
         actor->coup(*target);
-        logArea->append(QString::fromStdString(current + " performed a coup on " + target->getName()));
+        logArea->append(QString::fromStdString("💥 " + current + " performed a coup on " + target->getName()));
+        updatePlayerList();
+    } catch (const std::exception& e) {
+        showError(e.what());
+    }
+}
+
+void CoupGUI::onSanction() {
+    auto current = game.turn();
+    coup::Player* actor = nullptr;
+    for (auto* p : players) {
+        if (p->getName() == current) {
+            actor = p;
+            break;
+        }
+    }
+    if (!actor) return;
+
+    auto* target = selectTarget(current, "Sanction");
+    if (!target) return;
+
+    try {
+        int cost = 3;
+        logArea->append(QString::fromStdString("🧮 " + actor->getName() + " has " + std::to_string(actor->getCoins()) + " coins. Sanction cost: " + std::to_string(cost)));
+        //  GUI-level check before calling backend logic
+        if (actor->getCoins() < cost) {
+            throw std::runtime_error(std::string("Not enough coins for sanction") + (cost == 4 ? " (Judge requires 4 coins)" : ""));
+        }
+
+        // Perform the sanction with cost passed in
+        actor->sanction(*target, cost);
+        logArea->append(QString::fromStdString("🚫 " + current + " sanctioned " + target->getName()));
+        updatePlayerList();
+
+    } catch (const std::exception& e) {
+        showError(e.what());
+    }
+}
+
+void CoupGUI::onArrest() {
+    auto current = game.turn();
+    coup::Player* actor = nullptr;
+    for (auto* p : players) {
+        if (p->getName() == current) {
+            actor = p;
+            break;
+        }
+    }
+    if (!actor) return;
+
+    coup::Player* target = selectTarget(current, "Arrest");
+    if (!target) return;
+
+    // ✅ Check if any Spy wants to block the arrest (Spy previously spied on the actor)
+    for (auto* spy : players) {
+        if (getRoleName(spy) == "Spy" && spy->isAlive()) {
+            coup::Spy* realSpy = dynamic_cast<coup::Spy*>(spy);
+            if (realSpy && realSpy->getBlockedTarget() == actor) {
+                int res = QMessageBox::question(this, "Spy Arrest Block",
+                    QString::fromStdString(spy->getName()) + ": Do you want to block " +
+                    QString::fromStdString(actor->getName()) + "'s arrest action?",
+                    QMessageBox::Yes | QMessageBox::No);
+                if (res == QMessageBox::Yes) {
+                    actor->setArrestDisabled(true);  // ✅ Prevent further arrest attempts this turn
+                    logArea->append(QString::fromStdString("🕵️ " + spy->getName() +
+                        " blocked " + actor->getName() + "'s arrest."));
+                    return; // Arrest blocked
+                }
+            }
+        }
+    }
+
+    // 🛑 Try to do the arrest if no spy blocked
+    try {
+        actor->arrest(*target);
+        logArea->append(QString::fromStdString(current + " arrested " + target->getName()));
         updatePlayerList();
     } catch (const std::exception& e) {
         showError(e.what());
@@ -157,57 +279,48 @@ void CoupGUI::onCoup() {
 }
 
 
-void CoupGUI::onSanction() {
-    auto current = game.turn();
-    for (auto* p : players) {
-        if (p->getName() == current) {
-            auto* target = selectTarget(current, "Sanction");
-            if (!target) return;
-            try {
-                p->sanction(*target);
-                logArea->append(QString::fromStdString(current + " sanctioned " + target->getName()));
-                updatePlayerList();
-            } catch (const std::exception& e) {
-                showError(e.what());
-            }
-            return;
-        }
-    }
-}
-
-void CoupGUI::onArrest() {
-    auto current = game.turn();
-    for (auto* p : players) {
-        if (p->getName() == current) {
-            auto* target = selectTarget(current, "Arrest");
-            if (!target) return;
-            try {
-                p->arrest(*target);
-                logArea->append(QString::fromStdString(current + " arrested " + target->getName()));
-                updatePlayerList();
-            } catch (const std::exception& e) {
-                showError(e.what());
-            }
-            return;
-        }
-    }
-}
-
 void CoupGUI::onBribe() {
     auto current = game.turn();
-    for (auto* p : players) {
+    coup::Player* actor = nullptr;
+    for (auto* p : players)
         if (p->getName() == current) {
-            try {
-                p->bribe();
-                logArea->append(QString::fromStdString(current + " used a bribe!"));
-                updatePlayerList();
-            } catch (const std::exception& e) {
-                showError(e.what());
-            }
-            return;
+            actor = p;
+            break;
         }
+    if (!actor) return;
+
+    try {
+        actor->bribe();  // deducts 4 coins and marks bribeUsed = true
+        logArea->append(QString::fromStdString("💸 " + current + " used a bribe."));
+
+        // Ask all judges if they want to block it
+        for (auto* judge : players) {
+            if (getRoleName(judge) == "Judge" && judge->isAlive() && judge->getName() != current) {
+                int res = QMessageBox::question(this, "Judge Bribe Block",
+                    QString::fromStdString(judge->getName()) + ": Do you want to block " +
+                    QString::fromStdString(current) + "'s bribe?",
+                    QMessageBox::Yes | QMessageBox::No);
+
+                if (res == QMessageBox::Yes) {
+                    logArea->append(QString::fromStdString("⚖️ " + judge->getName() +
+                        " blocked the bribe! " + current + " lost 4 coins."));
+
+                    game.nextTurn();               //  advance turn!
+                    updatePlayerList();
+                    return;
+                }
+            }
+        }
+
+        // Bribe succeeded → player still on same turn
+        logArea->append(QString::fromStdString("🔁 " + current + " may take another action this turn."));
+        updatePlayerList();
+
+    } catch (const std::exception& e) {
+        showError(e.what());
     }
 }
+
 
 void CoupGUI::onSpy() {
     auto current = game.turn();
@@ -219,13 +332,17 @@ void CoupGUI::onSpy() {
             QString msg = QString::fromStdString(target->getName()) + " has " + QString::number(target->getCoins()) + " coins.";
             QMessageBox::information(this, "Spy Result", msg);
 
-            target->setBlockedFromArrest(true);  // ✅ This blocks target's arrest next turn
+            // ✅ Track the target in Spy
+            coup::Spy* spy = dynamic_cast<coup::Spy*>(p);
+            if (spy) spy->watch(*target);
+
             logArea->append(QString::fromStdString(current + " spied on " + target->getName()));
             return;
         }
     }
     showError("Only a Spy can use this action.");
 }
+
 
 
 void CoupGUI::onInvest() {
@@ -252,10 +369,28 @@ void CoupGUI::onNextTurn() {
                 p->earnCoins(1);
                 logArea->append(QString::fromStdString(p->getName()) + " earned 1 bonus coin (Merchant).");
             }
-            p->setBlockedFromArrest(false);
+
+            // 🧪 Add this debug log:
+            logArea->append(QString::fromStdString("🧪 " + p->getName() + " isUnderSanction: " + (p->isUnderSanction() ? "true" : "false")));
+
+            p->setArrestDisabled(false);
+            // DO NOT resetUnderSanction here — let gather/tax clear it after blocking
         }
+
+        for (auto* p : players) {
+            if (p->getName() == game.turn()) {
+                if (p->hasUsedBribe()) {
+                    p->resetBribe();
+                    logArea->append(QString::fromStdString(p->getName()) + " used bribe and already played one action. Now playing their second.");
+                    updatePlayerList();
+                    return;
+                }
+            }
+        }
+
         game.nextTurn();
         updatePlayerList();
+
     } catch (const std::exception& e) {
         showError(e.what());
     }
@@ -269,7 +404,9 @@ void CoupGUI::updatePlayerList() {
 
     for (auto* p : players) {
         QString display = QString::fromStdString(p->getName());
-        if (p->getName() == game.turn()) {
+        if (!p->isAlive()) {
+            display = "❌ " + display;  // Add ❌ if eliminated
+        } else if (p->getName() == game.turn()) {
             display += " ← (TURN)";
         }
         display += ": " + QString::number(p->getCoins()) + " coins";
@@ -350,8 +487,10 @@ QString CoupGUI::getRoleAbility(const QString& role) {
 }
 
 void CoupGUI::showError(const std::string& msg) {
+    logArea->append("❌ " + QString::fromStdString(msg));  // 👈 Also show in log
     QMessageBox::warning(this, "Error", QString::fromStdString(msg));
 }
+
 
 CoupGUI::~CoupGUI() {
     for (auto* p : players) delete p;

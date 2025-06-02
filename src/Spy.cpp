@@ -12,8 +12,19 @@ namespace coup {
         arrestedBlockedTarget = &target; // Block their next arrest action (simplified)
     }
 
-    void Spy:: preventNextArrest(Player& target) {
-        arrestedBlockedTarget = &target;
+    void Spy::preventNextArrest(Player& actor) {
+        if (arrestedBlockedTarget == &actor) {
+            arrestedBlockedTarget = nullptr;  // Consume the block
+            throw std::runtime_error(actor.getName() + "'s arrest was blocked by Spy!");
+        }
+    }
+
+    void Spy::clearWatch() {
+        arrestedBlockedTarget = nullptr;
+    }
+
+    Player* Spy::getBlockedTarget() const {
+        return arrestedBlockedTarget;
     }
 
     void Spy::coup(Player& target)
@@ -27,4 +38,5 @@ namespace coup {
     void Spy::undo(Player& target) {
         throw std::runtime_error("Spy cannot undo any actions");
     }
+
 }
