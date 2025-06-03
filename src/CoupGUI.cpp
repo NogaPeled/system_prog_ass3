@@ -93,7 +93,7 @@ void CoupGUI::onGather() {
     for (auto* p : players) {
         if (p->getName() == current) {
             try {
-                // ✅ Check if under sanction before calling gather
+                // Check if under sanction before calling gather
                 if (p->isUnderSanction()) {
                     showError("You are under sanction and cannot gather.");
                     return;
@@ -159,6 +159,7 @@ void CoupGUI::onTax() {
         }
     }
 }
+
 void CoupGUI::onCoup() {
     auto current = game.turn();
     coup::Player* actor = nullptr;
@@ -169,6 +170,7 @@ void CoupGUI::onCoup() {
         }
     }
     if (!actor) return;
+
     // Check if attacker has enough coins before proceeding
     if (actor->getCoins() < 7) {
         showError("You need at least 7 coins to perform a coup.");
@@ -180,7 +182,7 @@ void CoupGUI::onCoup() {
 
     // Let each General choose whether to block the coup
     for (auto* general : players) {
-        if (general == actor) continue;  // ✅ Skip self-blocking
+        if (general == actor) continue;  // Skip self-blocking
 
         if (getRoleName(general) == "General" &&
             general->isAlive() &&
@@ -195,10 +197,16 @@ void CoupGUI::onCoup() {
                 try {
                     actor->loseCoins(7);       // attacker always pays
                     general->loseCoins(5);     // general pays to block
+
                     logArea->append(QString::fromStdString("🛡️ " + general->getName() +
                         " blocked the coup on " + target->getName()));
+
+                    actor->useAction();  // Consume action
+                    if (actor->getActionsLeft() == 0)
+                        QTimer::singleShot(0, this, &CoupGUI::onNextTurn);  // Advance turn
+
                     updatePlayerList();
-                    checkForWinner();  // ✅ Check if game is over after block
+                    checkForWinner();
                     return;
                 } catch (const std::exception& e) {
                     showError(e.what());
@@ -213,10 +221,11 @@ void CoupGUI::onCoup() {
     try {
         actor->coup(*target);
         actor->useAction();
-        if (actor->getActionsLeft() == 0) QTimer::singleShot(0, this, &CoupGUI::onNextTurn);
+        if (actor->getActionsLeft() == 0)
+            QTimer::singleShot(0, this, &CoupGUI::onNextTurn);
         logArea->append(QString::fromStdString("💥 " + current + " performed a coup on " + target->getName()));
         updatePlayerList();
-        checkForWinner();  // ✅ Check for winner after coup
+        checkForWinner();
     } catch (const std::exception& e) {
         showError(e.what());
     }
@@ -245,7 +254,7 @@ void CoupGUI::onSanction() {
 
         // Perform the sanction with cost passed in
         actor->sanction(*target, cost);
-        actor->useAction();  // ✅ Consume an action!
+        actor->useAction();  // Consume an action!
         if (actor->getActionsLeft() == 0) QTimer::singleShot(0, this, &CoupGUI::onNextTurn);
         logArea->append(QString::fromStdString("🚫 " + current + " sanctioned " + target->getName()));
         updatePlayerList();
@@ -296,7 +305,7 @@ void CoupGUI::onArrest() {
     // Proceed with arrest if not blocked
     try {
         actor->arrest(*target);
-        actor->useAction();  // ✅ Consume an action!
+        actor->useAction();  // Consume an action!
         if (actor->getActionsLeft() == 0) QTimer::singleShot(0, this, &CoupGUI::onNextTurn);
         logArea->append(QString::fromStdString(current + " arrested " + target->getName()));
         updatePlayerList();
@@ -379,7 +388,7 @@ void CoupGUI::onInvest() {
         if (p->getName() == current && getRoleName(p) == "Baron") {
             try {
                 dynamic_cast<coup::Baron*>(p)->invest();
-                p->useAction();  // ✅ Consume an action!
+                p->useAction();  // Consume an action!
                 if (p->getActionsLeft() == 0) QTimer::singleShot(0, this, &CoupGUI::onNextTurn);
                 logArea->append(QString::fromStdString(current + " invested and gained 6 coins."));
                 updatePlayerList();
@@ -404,7 +413,7 @@ void CoupGUI::onNextTurn() {
         }
         if (!currentPlayer) return;
 
-        // ✅ If player has more actions left, DO NOT advance the turn
+        // If player has more actions left, DO NOT advance the turn
         if (currentPlayer->getActionsLeft() > 0) {
             int res = QMessageBox::question(this, "Skip Turn",
                 "You still have actions left. Do you want to skip them?",
@@ -450,7 +459,7 @@ QWidget* CoupGUI::createPlayerCard(coup::Player* p) {
     QLabel* emoji = new QLabel(getRoleEmoji(role));
     emoji->setAlignment(Qt::AlignCenter);
     emoji->setStyleSheet("font-size: 28px;");
-    emoji->setFont(QFont("Segoe UI Emoji"));  // ✅ Ensure emoji displays
+    emoji->setFont(QFont("Segoe UI Emoji"));  // Ensure emoji displays
 
     QLabel* name = new QLabel(QString::fromStdString(p->getName()) + " (" + role + ")");
     name->setAlignment(Qt::AlignCenter);
@@ -511,7 +520,7 @@ QString CoupGUI::getRoleAbility(const QString& role) {
 }
 
 void CoupGUI::showError(const std::string& msg) {
-    logArea->append("❌ " + QString::fromStdString(msg));  // 👈 Also show in log
+    logArea->append("❌ " + QString::fromStdString(msg));  
     QMessageBox::warning(this, "Error", QString::fromStdString(msg));
 }
 
