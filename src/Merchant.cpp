@@ -14,15 +14,4 @@ namespace coup {
         loseCoins(2); // The attacker does not get anything — effect is absorbed
     }
 
-    void Merchant::coup(Player& target) {
-        if (getCoins() < 7) throw std::runtime_error("Not enough coins for coup");
-        loseCoins(7);
-        target.eliminate();
-        game.nextTurn();
-    }
-
-    void Merchant::undo(Player& target) {
-        throw std::runtime_error("Merchant cannot undo actions.");
-    }
-
 }

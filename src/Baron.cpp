@@ -13,17 +13,6 @@ namespace coup {
         // Doesnt end the tuen, like bribe
     }
 
-    void Baron::coup(Player& target) {
-        if (getCoins() < 7) throw std::runtime_error("Not enough coins for coup.");
-        loseCoins(7);
-        target.eliminate();
-        game.nextTurn();
-    }
-
-    void Baron::undo(Player& target) {
-        throw std::runtime_error("Baron cannot undo any actions.");
-    }
-
     void Baron::onSanction() {
         earnCoins(1);
     }

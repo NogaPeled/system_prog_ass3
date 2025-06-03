@@ -16,7 +16,7 @@ namespace coup {
     }
 
     void Player::enforceCoupRule() const {
-        if (getCoins() >= 10) throw std::runtime_error(name + "has 10 or more coins and must perform a coup.");
+        if (getCoins() >= 10) throw std::runtime_error(name + " has 10 or more coins and must perform a coup.");
     }
 
     void Player::gather() {
@@ -26,8 +26,6 @@ namespace coup {
             throw std::runtime_error("You are under sanction and cannot gather.");
         }
         earnCoins(1);
-        underSanction = false;
-        game.nextTurn();
     }
 
     void Player::tax() {
@@ -36,15 +34,7 @@ namespace coup {
         if (underSanction) {
             throw std::runtime_error("You are under sanction and cannot tax.");
         }
-        Governor* gov = dynamic_cast<Governor*>(this);
-        if (gov != nullptr) {
-            earnCoins(3);
-        } else {
-            earnCoins(2);
-        }
-
-        underSanction = false; // only after successful tax
-        game.nextTurn();
+        earnCoins(2);  // Default tax behavior
     }
 
     void Player::arrest(Player& target) {
@@ -80,7 +70,6 @@ namespace coup {
         }
 
         game.setLastArrestedTarget(&target);
-        game.nextTurn();
     }
 
     void Player::sanction(Player& target, int cost) {
@@ -102,8 +91,6 @@ namespace coup {
 
         // Only now apply the sanction
         target.setUnderSanction(true);
-
-        game.nextTurn();
     }
 
     void Player::setUnderSanction(bool status) {
@@ -118,17 +105,26 @@ namespace coup {
         if (game.turn() != name) throw std::runtime_error("Not your turn!");
         if (getCoins() < 4) throw std::runtime_error("Not enough coins to bribe");
         if (bribeUsed) throw std::runtime_error("You already used bribe this turn");
-        
+
         loseCoins(4);
-        // Judge popup logic is handled in GUI after bribe() is called
         bribeUsed = true;
-        grantExtraTurn();  // Player gets 2 full actions after bribe
-        // Do not call game.nextTurn() — player keeps the turn!
+        addAction();  // 🎯 GIVE AN EXTRA ACTION!
     }
+
 
     void Player::resetBribe() {
         bribeUsed = false;
     }
+
+    void Player::coup(Player& target) {
+        if (game.turn() != name) throw std::runtime_error("Not your turn!");
+        if (!target.isAlive()) throw std::runtime_error("Target already eliminated.");
+        if (getCoins() < 7) throw std::runtime_error("Not enough coins for coup.");
+
+        loseCoins(7);
+        target.eliminate();    
+    }
+
 
     int Player::getCoins() const {
         return coins;
@@ -163,5 +159,22 @@ namespace coup {
     bool Player::isArrestDisabled() const {
         return blockedFromArrest;
     }
+
+    void Player::resetActions() {
+    actionsLeft = 1;
+    }
+
+    void Player::addAction() {
+        actionsLeft++;
+    }
+
+    void Player::useAction() {
+        if (actionsLeft > 0) actionsLeft--;
+    }
+
+    int Player::getActionsLeft() const {
+        return actionsLeft;
+    }
+
 
 }

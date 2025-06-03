@@ -8,7 +8,5 @@ namespace coup {
 
         void blockCoup();
         void onArrest();
-        void coup(Player& target) override;
-        void undo(Player& target) override;
     };
 }

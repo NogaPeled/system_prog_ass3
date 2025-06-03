@@ -52,6 +52,8 @@ private:
     QString getRoleEmoji(const QString& role);
     QString getRoleAbility(const QString& role);
     void showError(const std::string& msg);
+    void checkForWinner();
+    void disableAllButtons();
 };
 
 #endif // COUP_GUI_HPP

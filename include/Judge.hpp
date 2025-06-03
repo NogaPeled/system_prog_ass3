@@ -8,7 +8,5 @@ namespace coup {
 
         void undoBribe(Player& target); // Cancels the target's bribe
         void onSanctionedBy(Player& attacker); // Penalty when sanctioned
-        void coup(Player& target) override;
-        void undo(Player& target) override;
     };
 }

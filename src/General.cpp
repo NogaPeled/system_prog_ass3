@@ -13,15 +13,4 @@ namespace coup {
     void General::onArrest() {
         earnCoins(1);
     }
-    
-    void General::coup(Player& target) {
-        if (getCoins() < 7) throw std::runtime_error("Not enough coins for coup.");
-        loseCoins(7);
-        target.eliminate();
-        game.nextTurn();
-    }
-
-    void General::undo(Player& target) {
-        throw std::runtime_error("General cannot undo actions");
-    }
 }

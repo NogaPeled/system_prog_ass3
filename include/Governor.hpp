@@ -6,7 +6,5 @@ namespace coup {
         public:
         Governor(Game& game, const std::string& name);
         void tax() override;
-        void coup(Player& target) override;
-        void undo(Player& target) override;
     };
 }

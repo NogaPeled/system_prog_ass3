@@ -1,55 +1,71 @@
 #pragma once
 #include <string>
-// The base class for all player roles.
 
-// Designing an abstract base class called Player, which other classes like Governor, Spy, and Baron will inherit from
 namespace coup {
-    class Game;
 
-    class Player {
+class Game;
 
-        protected: 
-        Game& game; // Reference to the game this player belongs to
-        std::string name;
-        int coins = 0; // Number of coins the player currently holds
-        bool alive = true; // Whether the player is still in the game
-        bool underSanction = false;
-        bool bribeUsed = false; // to track if the player has used a bribe this turn
-        bool extraTurn = false;  // Tracks if player has an extra action (from bribe)
-        void enforceCoupRule() const;
-        bool blockedFromArrest = false;
-        // These are `protected` so that derived classes (like `Governor`) can access them directly if needed.
+/**
+ * @brief Base class for all player roles (Governor, Spy, Baron, etc.)
+ * 
+ * Contains shared properties and actions, and allows role-specific behavior
+ * through virtual methods like tax().
+ */
+class Player {
+protected:
+    Game& game;               // Reference to the game instance
+    std::string name;         // Player's name
+    int coins = 0;            // Number of coins held
+    bool alive = true;        // Whether the player is still active in the game
+    bool underSanction = false;
+    bool bribeUsed = false;
+    bool blockedFromArrest = false;
+    int actionsLeft = 1;  // Starts with 1 action by default
 
-        public:
-        Player(Game& game, const std::string& name); // The constructor takes a Game& and std::string name.
-        virtual ~Player() = default; // The destructor is virtual so derived classes can clean up correctly if needed.
-        // ~Player() = default; because I don’t need custom cleanup yet.
+    // Throws if player has 10+ coins and tries to avoid coup
+    void enforceCoupRule() const;
 
-        virtual void gather();
-        virtual void tax();
-        virtual void coup(Player& target) = 0;
-        virtual void undo(Player& target) = 0;
-        virtual void arrest(Player& target);
-        virtual void sanction(Player& target, int cost);        
-        void setUnderSanction(bool status);
-        bool isUnderSanction() const;    
-        virtual void bribe();    
-        void resetBribe();
-        bool hasUsedBribe() const { return bribeUsed; }  
-        
-        int getCoins() const;
-        const std::string& getName() const;
+public:
+    // Constructor and virtual destructor for polymorphic deletion
+    Player(Game& game, const std::string& name);
+    virtual ~Player() = default;
 
-        void earnCoins(int amount);
-        void loseCoins(int amount);
-        void eliminate();
-        bool isAlive() const;
-        void setArrestDisabled(bool);
-        bool isArrestDisabled() const;
+    // ===== Shared player actions =====
+    void gather();                        // +1 coin, blocked by sanction
+    virtual void tax();                   // Default: +2 coins; Governor overrides with +3
+    void bribe();                         // Pay 4 coins to get a 2nd action
+    void coup(Player& target);           // Eliminate a player for 7 coins
+    void arrest(Player& target);         // Steal 1 coin unless blocked by Spy
+    void sanction(Player& target, int cost); // Apply sanction
 
-        bool hasExtraTurn() const { return extraTurn; }
-        void grantExtraTurn() { extraTurn = true; }
-        void consumeExtraTurn() { extraTurn = false; }
+    // ===== Game state flags =====
+    void setUnderSanction(bool status);
+    bool isUnderSanction() const;
 
-    };
-}
+    void setArrestDisabled(bool);
+    bool isArrestDisabled() const;
+
+    bool hasUsedBribe() const { return bribeUsed; }
+    void resetBribe();
+
+    // ===== Coins and elimination =====
+    void earnCoins(int amount);
+    void loseCoins(int amount);
+    int getCoins() const;
+
+    void eliminate();          // Mark player as out of game
+    bool isAlive() const;
+
+    // ===== Identity =====
+    const std::string& getName() const;
+
+    // ===== Bribe-related turn tracking =====
+    void resetActions();         // Called at start of turn: sets actionsLeft = 1
+    void addAction();            // Called when bribe is used → actionsLeft++
+    void useAction();            // Called when an action is performed → actionsLeft--
+    int getActionsLeft() const;  // To check how many actions remain
+    bool hasMoreActions() const { return actionsLeft > 1; }
+
+};
+
+} // namespace coup

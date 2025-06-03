@@ -28,27 +28,31 @@ namespace coup {
         return players_list[current_turn_index]->getName();
     }
 
-void Game::nextTurn() {
-    if (players_list.empty()) return;
+    void Game::nextTurn() {
+        if (players_list.empty()) return;
 
-    Player* justFinished = players_list[current_turn_index];
+        // Save the player who just finished their turn
+        Player* justFinished = players_list[current_turn_index];
 
-    do {
-        current_turn_index = (current_turn_index + 1) % players_list.size();
-    } while (!players_list[current_turn_index]->isAlive());
+        // Advance to next alive player
+        do {
+            current_turn_index = (current_turn_index + 1) % players_list.size();
+        } while (!players_list[current_turn_index]->isAlive());
 
-    Player* nowPlaying = players_list[current_turn_index];
+        // Clear sanction for the player who just finished their turn
+        justFinished->setUnderSanction(false);  // ✅ KEY LINE
 
-    nowPlaying->resetBribe();
-    nowPlaying->setArrestDisabled(false); // reset arrest disable flag
+        // New player's turn begins
+        Player* nowPlaying = players_list[current_turn_index];
+        nowPlaying->resetBribe();
+        nowPlaying->setArrestDisabled(false);  // ✅ Reset spy block
 
-    // Merchant bonus:
-    Merchant* merchant = dynamic_cast<Merchant*>(nowPlaying);
-    if (merchant) {
-        merchant->onStartTurn();
+        // Merchant bonus
+        Merchant* merchant = dynamic_cast<Merchant*>(nowPlaying);
+        if (merchant) {
+            merchant->onStartTurn();
+        }
     }
-}
-
 
     std::string Game::winner() const {
         int aliveCount = 0;

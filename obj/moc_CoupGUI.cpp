@@ -1,0 +1,153 @@
+/****************************************************************************
+** Meta object code from reading C++ file 'CoupGUI.hpp'
+**
+** Created by: The Qt Meta Object Compiler version 67 (Qt 5.15.13)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include <memory>
+#include "../include/CoupGUI.hpp"
+#include <QtCore/qbytearray.h>
+#include <QtCore/qmetatype.h>
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'CoupGUI.hpp' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 67
+#error "This file was generated using the moc from 5.15.13. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+QT_BEGIN_MOC_NAMESPACE
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
+struct qt_meta_stringdata_CoupGUI_t {
+    QByteArrayData data[11];
+    char stringdata0[85];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_CoupGUI_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_CoupGUI_t qt_meta_stringdata_CoupGUI = {
+    {
+QT_MOC_LITERAL(0, 0, 7), // "CoupGUI"
+QT_MOC_LITERAL(1, 8, 8), // "onGather"
+QT_MOC_LITERAL(2, 17, 0), // ""
+QT_MOC_LITERAL(3, 18, 5), // "onTax"
+QT_MOC_LITERAL(4, 24, 6), // "onCoup"
+QT_MOC_LITERAL(5, 31, 10), // "onSanction"
+QT_MOC_LITERAL(6, 42, 8), // "onArrest"
+QT_MOC_LITERAL(7, 51, 7), // "onBribe"
+QT_MOC_LITERAL(8, 59, 5), // "onSpy"
+QT_MOC_LITERAL(9, 65, 8), // "onInvest"
+QT_MOC_LITERAL(10, 74, 10) // "onNextTurn"
+
+    },
+    "CoupGUI\0onGather\0\0onTax\0onCoup\0"
+    "onSanction\0onArrest\0onBribe\0onSpy\0"
+    "onInvest\0onNextTurn"
+};
+#undef QT_MOC_LITERAL
+
+static const uint qt_meta_data_CoupGUI[] = {
+
+ // content:
+       8,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       9,   14, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       0,       // signalCount
+
+ // slots: name, argc, parameters, tag, flags
+       1,    0,   59,    2, 0x08 /* Private */,
+       3,    0,   60,    2, 0x08 /* Private */,
+       4,    0,   61,    2, 0x08 /* Private */,
+       5,    0,   62,    2, 0x08 /* Private */,
+       6,    0,   63,    2, 0x08 /* Private */,
+       7,    0,   64,    2, 0x08 /* Private */,
+       8,    0,   65,    2, 0x08 /* Private */,
+       9,    0,   66,    2, 0x08 /* Private */,
+      10,    0,   67,    2, 0x08 /* Private */,
+
+ // slots: parameters
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
+
+       0        // eod
+};
+
+void CoupGUI::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<CoupGUI *>(_o);
+        (void)_t;
+        switch (_id) {
+        case 0: _t->onGather(); break;
+        case 1: _t->onTax(); break;
+        case 2: _t->onCoup(); break;
+        case 3: _t->onSanction(); break;
+        case 4: _t->onArrest(); break;
+        case 5: _t->onBribe(); break;
+        case 6: _t->onSpy(); break;
+        case 7: _t->onInvest(); break;
+        case 8: _t->onNextTurn(); break;
+        default: ;
+        }
+    }
+    (void)_a;
+}
+
+QT_INIT_METAOBJECT const QMetaObject CoupGUI::staticMetaObject = { {
+    QMetaObject::SuperData::link<QWidget::staticMetaObject>(),
+    qt_meta_stringdata_CoupGUI.data,
+    qt_meta_data_CoupGUI,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
+
+const QMetaObject *CoupGUI::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *CoupGUI::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_meta_stringdata_CoupGUI.stringdata0))
+        return static_cast<void*>(this);
+    return QWidget::qt_metacast(_clname);
+}
+
+int CoupGUI::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QWidget::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 9)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 9;
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 9)
+            *reinterpret_cast<int*>(_a[0]) = -1;
+        _id -= 9;
+    }
+    return _id;
+}
+QT_WARNING_POP
+QT_END_MOC_NAMESPACE
