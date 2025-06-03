@@ -1,3 +1,4 @@
+//nogapeled19@gmail.com
 #include "CoupGUI.hpp"
 #include "../include/Player.hpp"
 #include <QMessageBox>
@@ -9,10 +10,11 @@
 #include <QRandomGenerator>
 #include <QTimer>
 
-CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
+
+CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) { // Set window title and size
     setWindowTitle("Coup Game - GUI Version");
     resize(1000, 600);
-
+    // Create main layouts: player list/log + card view + action buttons
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     QHBoxLayout* topLayout = new QHBoxLayout();
     playerList = new QListWidget();
@@ -53,16 +55,16 @@ CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
     mainLayout->addLayout(buttonLayout);
 
     bool ok;
-    int numPlayers = QInputDialog::getInt(this, "Players", "Enter number of players (2-6):", 2, 2, 6, 1, &ok);
+    int numPlayers = QInputDialog::getInt(this, "Players", "Enter number of players (2-6):", 2, 2, 6, 1, &ok); // Ask user how many players will participate
     if (!ok) QApplication::quit();
 
     QStringList rolePool = {"Governor", "Spy", "Baron", "General", "Judge", "Merchant"};
 
     for (int i = 0; i < numPlayers; ++i) {
-        QString name = QInputDialog::getText(this, "Player Name", QString("Enter name for player %1:").arg(i + 1), QLineEdit::Normal, "", &ok);
+        QString name = QInputDialog::getText(this, "Player Name", QString("Enter name for player %1:").arg(i + 1), QLineEdit::Normal, "", &ok); // Get each player's name and assign a random role
         if (!ok || name.isEmpty()) QApplication::quit();
 
-        QString role = rolePool[QRandomGenerator::global()->bounded(rolePool.size())];
+        QString role = rolePool[QRandomGenerator::global()->bounded(rolePool.size())]; // Instantiate a player object based on randomly selected role
 
         coup::Player* newPlayer = nullptr;
         if (role == "Governor") newPlayer = new coup::Governor(game, name.toStdString());
@@ -75,6 +77,7 @@ CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
         players.push_back(newPlayer);
     }
 
+    // Connect button to corresponding action handler
     connect(gatherBtn, &QPushButton::clicked, this, &CoupGUI::onGather);
     connect(taxBtn, &QPushButton::clicked, this, &CoupGUI::onTax);
     connect(coupBtn, &QPushButton::clicked, this, &CoupGUI::onCoup);
@@ -88,7 +91,7 @@ CoupGUI::CoupGUI(QWidget* parent) : QWidget(parent) {
     updatePlayerList();
 }
 
-void CoupGUI::onGather() {
+void CoupGUI::onGather() { // Player performs gather unless under sanction
     auto current = game.turn();
     for (auto* p : players) {
         if (p->getName() == current) {
@@ -112,7 +115,7 @@ void CoupGUI::onGather() {
     }
 }
 
-void CoupGUI::onTax() {
+void CoupGUI::onTax() { // Governors may optionally block the tax action via popup
     auto current = game.turn();
     for (auto* p : players) {
         if (p->getName() == current) {
@@ -160,7 +163,7 @@ void CoupGUI::onTax() {
     }
 }
 
-void CoupGUI::onCoup() {
+void CoupGUI::onCoup() { // General may choose to block the coup via popup
     auto current = game.turn();
     coup::Player* actor = nullptr;
     for (auto* p : players) {
@@ -231,7 +234,7 @@ void CoupGUI::onCoup() {
     }
 }
 
-void CoupGUI::onSanction() {
+void CoupGUI::onSanction() { // GUI pre-check for cost; sanction logic handled in backend
     auto current = game.turn();
     coup::Player* actor = nullptr;
     for (auto* p : players) {
@@ -264,7 +267,7 @@ void CoupGUI::onSanction() {
     }
 }
 
-void CoupGUI::onArrest() {
+void CoupGUI::onArrest() {// Spies may choose to block arrest via popup
     auto current = game.turn();
     coup::Player* actor = nullptr;
     for (auto* p : players) {
@@ -315,7 +318,7 @@ void CoupGUI::onArrest() {
 }
 
 
-void CoupGUI::onBribe() {
+void CoupGUI::onBribe() { // Judges may choose to block bribe via popup
     auto current = game.turn();
     coup::Player* actor = nullptr;
     for (auto* p : players)
@@ -359,7 +362,7 @@ void CoupGUI::onBribe() {
 }
 
 
-void CoupGUI::onSpy() {
+void CoupGUI::onSpy() { // Spy sees coin count and tracks for arrest block
     auto current = game.turn();
     for (auto* p : players) {
         if (p->getName() == current && getRoleName(p) == "Spy") {
@@ -382,7 +385,7 @@ void CoupGUI::onSpy() {
 
 
 
-void CoupGUI::onInvest() {
+void CoupGUI::onInvest() { // Baron invests 3 to gain 6 coins
     auto current = game.turn();
     for (auto* p : players) {
         if (p->getName() == current && getRoleName(p) == "Baron") {
@@ -401,7 +404,7 @@ void CoupGUI::onInvest() {
     showError("Only a Baron can use Invest.");
 }
 
-void CoupGUI::onNextTurn() {
+void CoupGUI::onNextTurn() { // Optionally skip remaining actions; resets spy and turn state
     try {
         // Find current player
         coup::Player* currentPlayer = nullptr;
@@ -451,7 +454,7 @@ void CoupGUI::onNextTurn() {
     }
 }
 
-QWidget* CoupGUI::createPlayerCard(coup::Player* p) {
+QWidget* CoupGUI::createPlayerCard(coup::Player* p) { // Build visual card for a player's info, role, and abilities
     QString role = getRoleName(p);
     QWidget* card = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(card);
@@ -474,7 +477,7 @@ QWidget* CoupGUI::createPlayerCard(coup::Player* p) {
     return card;
 }
 
-coup::Player* CoupGUI::selectTarget(const std::string& currentName, const QString& actionTitle) {
+coup::Player* CoupGUI::selectTarget(const std::string& currentName, const QString& actionTitle) { // Let the current player choose a valid living target
     QStringList choices;
     for (auto* p : players) {
         if (p->isAlive() && p->getName() != currentName)
@@ -546,7 +549,7 @@ void CoupGUI::disableAllButtons() {
     }
 }
 
-void CoupGUI::updatePlayerList() {
+void CoupGUI::updatePlayerList() { // Refreshes the GUI: updates list, coin count, turn indicator, and role cards
     logArea->append("🟢 It's " + QString::fromStdString(game.turn()) + "'s turn.");
     playerList->clear();
     for (QWidget* w : playerCards) delete w;
